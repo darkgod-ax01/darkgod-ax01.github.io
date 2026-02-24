@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DARK-CHAT | Elite Terminal</title>
+  <link rel="icon" type="image/x-icon" href="images/ico.png">
+  <link rel="Shortcut Icon" type="image/png" href="images/ico.png">
+    <style>
+        :root {
+            --blue: #00d2ff;
+            --deep-blue: #007aff;
+            --glass: rgba(0, 8, 15, 0.9);
+            --border: rgba(0, 210, 255, 0.4);
+            --glow: 0 0 20px rgba(0, 210, 255, 0.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        
+        body, html {
+            height: 100%;
+            background: #000;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        /* HD Crystal Clear Background */
+        .bg-layer {
+            position: fixed;
+            inset: 0;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
+            z-index: 1;
+            transition: opacity 0.6s ease;
+        }
+
+        /* Micro-Detail: Moving Hex/Grid Overlay */
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px), 
+                              linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(circle, black, transparent 80%);
+            opacity: 0.15;
+            z-index: 2;
+            animation: grid-move 20s linear infinite;
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.08) 2px,
+                rgba(0,0,0,0.08) 4px
+            );
+            pointer-events: none;
+            z-index: 3;
+            animation: scan-move 8s linear infinite;
+        }
+
+        /* Vignette */
+        .vignette {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.7) 100%);
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        #loader-screen {
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: clamp(20px, 5vw, 40px);
+            transition: transform 1s cubic-bezier(0.85, 0, 0.15, 1), opacity 1s;
+        }
+
+        /* Modern Corner Brackets */
+        .bracket {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 2px solid var(--blue);
+            z-index: 101;
+        }
+        .tl { top: 20px; left: 20px; border-right: 0; border-bottom: 0; }
+        .tr { top: 20px; right: 20px; border-left: 0; border-bottom: 0; }
+        .bl { bottom: 20px; left: 20px; border-right: 0; border-top: 0; }
+        .br { bottom: 20px; right: 20px; border-left: 0; border-top: 0; }
+
+        /* Animated corner brackets */
+        .bracket::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--blue);
+            box-shadow: 0 0 8px var(--blue);
+        }
+        .tl::before { top: -2px; left: -2px; }
+        .tr::before { top: -2px; right: -2px; }
+        .bl::before { bottom: -2px; left: -2px; }
+        .br::before { bottom: -2px; right: -2px; }
+
+        /* Header UI */
+        .header-ui {
+            display: flex;
+            justify-content: space-between;
+            z-index: 102;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tele-pill {
+            background: var(--glass);
+            padding: 8px 15px;
+            border: 1px solid var(--border);
+            font-size: 11px;
+            letter-spacing: 2px;
+            display: flex;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Wallpaper badge */
+        .wp-badge {
+            background: var(--glass);
+            padding: 8px 15px;
+            border: 1px solid var(--border);
+            font-size: 10px;
+            letter-spacing: 2px;
+            backdrop-filter: blur(10px);
+            color: rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .wp-badge span { color: var(--blue); }
+
+        /* Center Content */
+        .main-unit {
+            text-align: center;
+            z-index: 102;
+        }
+
+        .rotating-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+        .rotating-icon .ring-outer {
+            animation: rotate-center 10s linear infinite;
+        }
+        .rotating-icon .ring-inner {
+            animation: rotate-center 6s linear infinite reverse;
+        }
+
+        .rotating-icon svg {
+            filter: drop-shadow(0 0 10px var(--blue));
+        }
+
+        .app-name {
+            font-size: clamp(24px, 6vw, 36px);
+            font-weight: 200;
+            letter-spacing: 15px;
+            text-indent: 15px;
+            margin-bottom: 30px;
+            background: linear-gradient(to bottom, #fff, var(--blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Telemetry Card */
+        .data-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 20px;
+            width: 100%;
+            max-width: 360px;
+            margin: 0 auto;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Card top accent line */
+        .data-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 10%; right: 10%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--blue), transparent);
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'monospace';
+            font-size: 12px;
+            margin: 8px 0;
+            color: var(--blue);
+        }
+
+        .data-label { color: rgba(255,255,255,0.5); text-transform: uppercase; }
+
+        /* Status dot blink */
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 6px #00ff88;
+            animation: blink-dot 1.2s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        /* Loading UI */
+        .progress-group {
+            width: 100%;
+            max-width: 400px;
+            margin: 40px auto 0;
+        }
+
+        .bar-shell {
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .bar-core {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, var(--deep-blue), var(--blue));
+            box-shadow: 0 0 15px var(--blue);
+            transition: width 0.2s linear;
+            position: relative;
+        }
+
+        /* Traveling glow dot on bar */
+        .bar-core::after {
+            content: '';
+            position: absolute;
+            right: -4px; top: -3px;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 10px var(--blue), 0 0 20px var(--blue);
+        }
+
+        /* Secondary thin bar */
+        .bar-shell2 {
+            height: 1px;
+            background: rgba(255,255,255,0.05);
+            margin: 4px 0 10px;
+        }
+        .bar-core2 {
+            height: 100%;
+            width: 0%;
+            background: rgba(0,210,255,0.4);
+            transition: width 0.3s linear;
+        }
+
+        .status-msg {
+            font-size: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--blue);
+        }
+
+        /* Hex nodes row */
+        .hex-nodes {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 14px;
+        }
+        .hex-node {
+            width: 8px;
+            height: 8px;
+            background: rgba(0,210,255,0.15);
+            border: 1px solid rgba(0,210,255,0.3);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            transition: background 0.3s, box-shadow 0.3s;
+        }
+        .hex-node.active {
+            background: var(--blue);
+            box-shadow: 0 0 8px var(--blue);
+        }
+
+        footer {
+            text-align: center;
+            font-size: 11px;
+            letter-spacing: 5px;
+            color: rgba(255,255,255,0.4);
+            z-index: 102;
+        }
+
+        footer b { color: var(--blue); text-shadow: var(--glow); }
+
+        /* Webview Hidden initially */
+        #webview {
+            position: fixed; inset: 0; width: 100%; height: 100%;
+            border: none; z-index: 50; display: none;
+        }
+
+        /* Animations */
+        @keyframes grid-move {
+            from { background-position: 0 0; }
+            to { background-position: 50px 50px; }
+        }
+
+        @keyframes scan-move {
+            from { background-position: 0 0; }
+            to { background-position: 0 100px; }
+        }
+
+        @keyframes rotate-center {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes blink-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .main-unit { animation: fade-in-up 0.8s ease both; }
+
+        .finished {
+            opacity: 0;
+            transform: translateY(-20px) scale(1.05);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-layer" id="bg-layer"></div>
+    <div class="grid-overlay"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <div id="loader-screen">
+        <div class="bracket tl"></div><div class="bracket tr"></div>
+        <div class="bracket bl"></div><div class="bracket br"></div>
+
+        <div class="header-ui">
+            <div class="tele-pill">
+                <span>TIME: <b id="tm" style="color:var(--blue)">00:00</b></span>
+                <span>OS: <b style="color:var(--blue)">DARK_V3</b></span>
+            </div>
+            <div class="wp-badge">
+                WALL: <span id="wp-name">WP_01</span>
+            </div>
+            <div class="tele-pill">
+                <span>PING: <b id="ping" style="color:#00ff88">0ms</b></span>
+            </div>
+        </div>
+
+        <div class="main-unit">
+            <div class="rotating-icon">
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                    <!-- Outer dashed ring -->
+                    <g class="ring-outer">
+                        <circle cx="50" cy="50" r="45" stroke="var(--blue)" stroke-width="1" fill="none" stroke-dasharray="10 5" />
+                    </g>
+                    <!-- Inner solid ring -->
+                    <g class="ring-inner">
+                        <circle cx="50" cy="50" r="33" stroke="var(--blue)" stroke-width="1.5" fill="none" stroke-dasharray="5 8" />
+                    </g>
+                    <!-- Static center ring -->
+                    <circle cx="50" cy="50" r="22" stroke="rgba(0,210,255,0.4)" stroke-width="1" fill="none" />
+                    <!-- Cross hairs -->
+                    <path d="M50 20 L50 35 M80 50 L65 50 M50 80 L50 65 M20 50 L35 50" stroke="white" stroke-width="2"/>
+                    <!-- Center dot -->
+                    <circle cx="50" cy="50" r="3" fill="var(--blue)" />
+                </svg>
+            </div>
+            
+            <h1 class="app-name">DARK-CHAT</h1>
+
+            <div class="data-card">
+                <div class="data-row">
+                    <span class="data-label">Origin_IP:</span>
+                    <span id="ip-real">...</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Proxy_IP:</span>
+                    <span id="ip-proxy">...</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Protocol:</span>
+                    <span>WSS://SECURE</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Encryption:</span>
+                    <span id="enc-key">AES-256-GCM</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Session:</span>
+                    <span id="session-id">...</span>
+                </div>
+            </div>
+
+            <div class="progress-group">
+                <div class="status-msg">
+                    <span class="status-dot"></span>
+                    <span id="status-txt">Loading Core...</span>
+                </div>
+                <div class="bar-shell">
+                    <div class="bar-core" id="bar"></div>
+                </div>
+                <div class="bar-shell2">
+                    <div class="bar-core2" id="bar2"></div>
+                </div>
+                <div style="font-size: 20px; font-weight: 200; letter-spacing: 2px;">
+                    <span id="pct">0</span>%
+                </div>
+                <!-- Hex progress nodes -->
+                <div class="hex-nodes" id="hex-nodes">
+                    <div class="hex-node" id="h0"></div>
+                    <div class="hex-node" id="h1"></div>
+                    <div class="hex-node" id="h2"></div>
+                    <div class="hex-node" id="h3"></div>
+                    <div class="hex-node" id="h4"></div>
+                    <div class="hex-node" id="h5"></div>
+                    <div class="hex-node" id="h6"></div>
+                    <div class="hex-node" id="h7"></div>
+                    <div class="hex-node" id="h8"></div>
+                    <div class="hex-node" id="h9"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>MADE BY <b>DAKSH LAMBHA</b></footer>
+    </div>
+
+    <iframe id="webview" src="https://dark-chat-com.netlify.app/sy"></iframe>
+    <audio id="bg-music"><source src="sound/dark01.mp3" type="audio/mp3"></audio>
+
+    <script>
+        // ── Pick random wallpaper ──────────────────────────────────────────
+        const wallpapers = ['lg1.png','lg2.png','lg3.png','lg4.png','lg5.png'];
+        const chosenWP   = wallpapers[Math.floor(Math.random() * wallpapers.length)];
+        const wpIndex    = chosenWP.replace('lg','').replace('.png',''); // "1"–"5"
+        document.getElementById('bg-layer').style.backgroundImage = `url('${chosenWP}')`;
+        document.getElementById('wp-name').innerText = `WP_0${wpIndex}`;
+
+        // ── Fetch Real IP ──────────────────────────────────────────────────
+        async function getIP() {
+            try {
+                const r = await fetch('https://api.ipify.org?format=json');
+                const d = await r.json();
+                document.getElementById('ip-real').innerText = d.ip;
+            } catch {
+                document.getElementById('ip-real').innerText = "127.0.0.1";
+            }
+        }
+
+        // ── Random session ID ──────────────────────────────────────────────
+        function genSession() {
+            return Array.from({length:8}, () =>
+                Math.floor(Math.random()*16).toString(16).toUpperCase()
+            ).join('') + '-' +
+            Array.from({length:4}, () =>
+                Math.floor(Math.random()*16).toString(16).toUpperCase()
+            ).join('');
+        }
+
+        // ── Small Details: UI Updates ──────────────────────────────────────
+        const encTypes = ['AES-256-GCM','RSA-4096','ChaCha20','AES-128-GCM'];
+        let encFlip = 0;
+        function updateUI() {
+            const d = new Date();
+            document.getElementById('tm').innerText =
+                d.getHours().toString().padStart(2,'0') + ':' +
+                d.getMinutes().toString().padStart(2,'0');
+            document.getElementById('ping').innerText =
+                Math.floor(Math.random()*20 + 15) + 'ms';
+            document.getElementById('ip-proxy').innerText =
+                `${rnd(255)}.${rnd(255)}.${rnd(255)}.${rnd(255)}`;
+        }
+        function rnd(n){ return Math.floor(Math.random()*n); }
+
+        // ── Boot ───────────────────────────────────────────────────────────
+        document.addEventListener("DOMContentLoaded", () => {
+            getIP();
+            document.getElementById('session-id').innerText = genSession();
+            setInterval(updateUI, 1000);
+            updateUI();
+
+            const bar     = document.getElementById("bar");
+            const bar2    = document.getElementById("bar2");
+            const pct     = document.getElementById("pct");
+            const screen  = document.getElementById("loader-screen");
+            const webview = document.getElementById("webview");
+            const status  = document.getElementById("status-txt");
+            const audio   = document.getElementById("bg-music");
+
+            const steps = [
+                "Initializing Core",
+                "Handshaking Server",
+                "Encrypting Tunnel",
+                "Authenticating",
+                "Loading Assets",
+                "Verifying Session",
+                "Access Granted"
+            ];
+
+            let p = 0;
+
+            // Rotate session ID for extra detail
+            setInterval(() => {
+                document.getElementById('session-id').innerText = genSession();
+            }, 800);
+
+            const frame = setInterval(() => {
+                p += Math.random() * 1.8;
+                if (p >= 100) {
+                    p = 100;
+                    clearInterval(frame);
+                    setTimeout(done, 1000);
+                }
+
+                bar.style.width  = p + "%";
+                bar2.style.width = Math.min(100, p + Math.random()*5) + "%";
+                pct.innerText    = Math.floor(p);
+
+                // Status message
+                const stepIdx = Math.min(Math.floor(p / (100/steps.length)), steps.length-1);
+                status.innerText = steps[stepIdx];
+
+                // Hex nodes
+                const activeNodes = Math.floor(p / 10);
+                for (let i = 0; i < 10; i++) {
+                    document.getElementById('h'+i).classList.toggle('active', i < activeNodes);
+                }
+            }, 60);
+
+            function done() {
+                screen.classList.add("finished");
+                setTimeout(() => {
+                    screen.style.display = "none";
+                    webview.style.display = "block";
+                }, 1000);
+            }
+
+            // Play music ONCE on first click
+            document.body.addEventListener('click', () => {
+                audio.play();
+            }, { once: true });
+        });
+    </script>
+</body>
+</html>
