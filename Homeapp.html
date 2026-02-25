@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Home</title>
+    <style>
+        :root {
+            --bg-color: #0e1621;
+            --accent-color: #2481cc;
+            --accent-glow: rgba(36, 129, 204, 0.4);
+            --nav-bg: #17212b;
+            --border-color: #2b3948;
+            --text-secondary: #7f91a4;
+            --nav-count: 5;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: var(--bg-color);
+            font-family: -apple-system, system-ui, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #webview {
+            flex: 1;
+            border: none;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            transition: opacity 0.25s ease;
+        }
+
+        #webview.fading {
+            opacity: 0;
+        }
+
+        /* ── bottom nav ── */
+        .bottom-nav-container {
+            position: relative;
+            height: 70px;
+            background: url('bg1.png') no-repeat center center;
+            background-size: cover;
+            background-color: var(--nav-bg);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+            padding-bottom: env(safe-area-inset-bottom);
+            /* subtle glass shine on top edge */
+            box-shadow: 0 -1px 0 rgba(255,255,255,0.05), 0 -8px 24px rgba(0,0,0,0.4);
+        }
+
+        /* ── sliding blob ── */
+        .nav-slider {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 20%; /* 100% / 5 tabs */
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* smooth spring-like curve */
+            transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .nav-slider-blob {
+            width: 48px;
+            height: 34px;
+            background: rgba(36, 129, 204, 0.18);
+            border-radius: 18px;
+            border: 1px solid rgba(36, 129, 204, 0.6);
+            box-shadow:
+                0 0 14px var(--accent-glow),
+                0 0 4px var(--accent-glow) inset;
+            /* blob breathe animation */
+            animation: blob-breathe 3s ease-in-out infinite;
+            transition: width 0.3s ease, border-radius 0.3s ease;
+        }
+
+        @keyframes blob-breathe {
+            0%, 100% { box-shadow: 0 0 14px var(--accent-glow), 0 0 4px var(--accent-glow) inset; }
+            50%       { box-shadow: 0 0 22px var(--accent-glow), 0 0 8px var(--accent-glow) inset; }
+        }
+
+        /* while moving, stretch blob horizontally */
+        .nav-slider.sliding .nav-slider-blob {
+            width: 62px;
+            border-radius: 28px;
+        }
+
+        /* ── nav items ── */
+        .nav-item {
+            z-index: 2;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 9.5px;
+            letter-spacing: 0.02em;
+            text-decoration: none;
+            background: none;
+            border: none;
+            width: 20%; /* 5 tabs */
+            cursor: pointer;
+            padding: 6px 0 4px;
+            transition: color 0.3s ease;
+            /* click press effect */
+            transform-origin: center bottom;
+        }
+
+        .nav-item:active {
+            transform: scale(0.88);
+            transition: transform 0.1s ease, color 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: #ffffff;
+        }
+
+        /* icon wrapper for smooth scale */
+        .nav-icon-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 3px;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .nav-item.active .nav-icon-wrap {
+            transform: translateY(-2px) scale(1.12);
+        }
+
+        .nav-item svg {
+            width: 21px;
+            height: 21px;
+            fill: currentColor;
+            transition: filter 0.3s ease;
+        }
+
+        .nav-item.active svg {
+            filter: drop-shadow(0 0 5px var(--accent-glow));
+        }
+
+        .nav-label {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .nav-item.active .nav-label {
+            opacity: 1;
+            font-weight: 600;
+        }
+
+        /* ── badge ── */
+        .nav-badge {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .badge-dot {
+            position: absolute;
+            top: -2px;
+            right: -5px;
+            width: 7px;
+            height: 7px;
+            background: #3ddc84;
+            border-radius: 50%;
+            border: 2px solid var(--nav-bg);
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50%       { transform: scale(1.35); opacity: 0.6; }
+        }
+
+        /* ── ripple on tap ── */
+        .nav-item .ripple {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(36, 129, 204, 0.25);
+            transform: scale(0);
+            animation: ripple-out 0.55s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes ripple-out {
+            to { transform: scale(2.4); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <iframe id="webview" src="https://dark-chat-com.netlify.app/chat"></iframe>
+
+    <nav class="bottom-nav-container">
+        <div class="nav-slider" id="slider">
+            <div class="nav-slider-blob"></div>
+        </div>
+
+        <!-- Chats -->
+        <button class="nav-item active" onclick="moveNav(0, 'https://dark-chat-com.netlify.app/chat', this)">
+            <div class="nav-icon-wrap">
+                <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+            </div>
+            <span class="nav-label">Chats</span>
+        </button>
+
+        <!-- AI Assistant -->
+        <button class="nav-item" onclick="moveNav(1, 'https://dark-chat-com.netlify.app/ai7', this)">
+            <div class="nav-icon-wrap">
+                <div class="nav-badge">
+                    <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5 2.5 2.5 0 0 0 7.5 18 2.5 2.5 0 0 0 10 15.5 2.5 2.5 0 0 0 7.5 13m9 0a2.5 2.5 0 0 0-2.5 2.5 2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5 2.5 2.5 0 0 0-2.5-2.5z"/></svg>
+                    <span class="badge-dot"></span>
+                </div>
+            </div>
+            <span class="nav-label">AI Assistant</span>
+        </button>
+
+        <!-- Uploads -->
+        <button class="nav-item" onclick="moveNav(2, 'https://dark-chat-com.netlify.app/upload', this)">
+            <div class="nav-icon-wrap">
+                <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/></svg>
+            </div>
+            <span class="nav-label">Uploads</span>
+        </button>
+
+        <!-- Voicemail (NEW) -->
+        <button class="nav-item" onclick="moveNav(3, 'voice.html', this)">
+            <div class="nav-icon-wrap">
+                <svg viewBox="0 0 24 24"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.25a11.36 11.36 0 0 0 3.57.57c.55 0 1 .45 1 1V20c0 .55-.45 1-1 1C10.61 21 3 13.39 3 4c0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2zM17 1v6m-3-3h6"/></svg>
+            </div>
+            <span class="nav-label">Voicemail</span>
+        </button>
+
+        <!-- Settings -->
+        <button class="nav-item" onclick="moveNav(4, 'https://dark-chat-com.netlify.app/settings', this)">
+            <div class="nav-icon-wrap">
+                <svg viewBox="0 0 24 24"><path d="M12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm7.43-2.52c.04-.33.07-.67.07-1s-.03-.67-.07-1l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65z"/></svg>
+            </div>
+            <span class="nav-label">Settings</span>
+        </button>
+    </nav>
+
+    <script>
+        const slider  = document.getElementById('slider');
+        const webview = document.getElementById('webview');
+        let slideTimer = null;
+
+        function moveNav(index, url, btn) {
+            /* ripple */
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            btn.appendChild(ripple);
+            ripple.addEventListener('animationend', () => ripple.remove());
+
+            /* slide blob with stretch */
+            slider.classList.add('sliding');
+            slider.style.transform = `translateX(${index * 100}%)`;
+            clearTimeout(slideTimer);
+            slideTimer = setTimeout(() => slider.classList.remove('sliding'), 420);
+
+            /* active state */
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            btn.classList.add('active');
+
+            /* fade iframe */
+            webview.classList.add('fading');
+            setTimeout(() => {
+                webview.src = url;
+                webview.classList.remove('fading');
+            }, 200);
+        }
+    </script>
+</body>
+</html>
